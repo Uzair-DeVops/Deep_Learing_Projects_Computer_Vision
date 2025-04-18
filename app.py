@@ -4,10 +4,12 @@ import numpy as np
 from ultralytics import YOLO
 from PIL import Image
 import time
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+import av
 
 # Load two models
 model1 = YOLO("model.pt")  # Replace with your actual watch detection model
-model2 = YOLO("yolov8n.pt")      # General model or another custom one
+model2 = YOLO("yolov8n.pt")  # General model or another custom one
 
 # App title
 st.title("📸 Dual YOLO Model Detection")
@@ -15,13 +17,34 @@ st.title("📸 Dual YOLO Model Detection")
 # Sidebar for mode
 mode = st.sidebar.selectbox("Choose Mode", ["Webcam Detection", "Image Upload"])
 
-# Session state for webcam
-if 'running' not in st.session_state:
-    st.session_state.running = False
-
 # ======================
 # Webcam Mode
 # ======================
+
+class VideoTransformer(VideoTransformerBase):
+    def __init__(self):
+        self.model1 = model1
+        self.model2 = model2
+
+    def transform(self, frame: av.VideoFrame) -> av.VideoFrame:
+        # Convert the frame to a numpy array
+        img = frame.to_ndarray(format="bgr24")
+
+        # Run both models
+        results1 = self.model1(img)
+        results2 = self.model2(img)
+
+        # Get annotated frames
+        frame1 = results1[0].plot()
+        frame2 = results2[0].plot()
+
+        # Combine both annotations (add them like layers)
+        combined = cv2.addWeighted(frame1, 0.5, frame2, 0.5, 0)
+
+        # Convert back to VideoFrame
+        combined = cv2.cvtColor(combined, cv2.COLOR_BGR2RGB)
+        return av.VideoFrame.from_ndarray(combined, format="rgb24")
+
 if mode == "Webcam Detection":
     st.subheader("🎥 Webcam Detection with Two Models")
 
@@ -29,43 +52,10 @@ if mode == "Webcam Detection":
     col1, col2 = st.columns(2)
     with col1:
         if st.button("▶️ Start Webcam"):
-            st.session_state.running = True
+            webrtc_streamer(key="example", video_transformer_factory=VideoTransformer)
     with col2:
         if st.button("⛔ Stop Webcam"):
-            st.session_state.running = False
-
-    # Image display area
-    frame_placeholder = st.empty()
-
-    def run_webcam():
-        cap = cv2.VideoCapture(0)
-        while st.session_state.running:
-            ret, frame = cap.read()
-            if not ret:
-                st.error("Webcam not working.")
-                break
-
-            # Run both models
-            results1 = model1(frame)
-            results2 = model2(frame)
-
-            # Get annotated frames
-            frame1 = results1[0].plot()
-            frame2 = results2[0].plot()
-
-            # Combine both annotations (add them like layers)
-            combined = cv2.addWeighted(frame1, 0.5, frame2, 0.5, 0)
-
-            # Convert for Streamlit
-            combined = cv2.cvtColor(combined, cv2.COLOR_BGR2RGB)
-            frame_placeholder.image(combined, channels="RGB", use_container_width=True)
-
-            time.sleep(0.03)
-
-        cap.release()
-
-    if st.session_state.running:
-        run_webcam()
+            st.session_state.running = False  # Streamlit-webrtc will handle stopping automatically
 
 # ======================
 # Image Upload Mode
@@ -91,6 +81,4 @@ elif mode == "Image Upload":
         final = cv2.cvtColor(final, cv2.COLOR_BGR2RGB)
 
         st.image(final, caption="Combined Detection", use_container_width=True)
-
-
-        # Display individual results
+u
