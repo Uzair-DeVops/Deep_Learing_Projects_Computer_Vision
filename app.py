@@ -81,3 +81,4 @@ elif mode == "Image Upload":
         final = cv2.cvtColor(final, cv2.COLOR_BGR2RGB)
 
         st.image(final, caption="Combined Detection", use_container_width=True)
+        st.success("Detection complete!")
