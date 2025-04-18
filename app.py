@@ -1,5 +1,4 @@
 import streamlit as st
-import cv2
 import numpy as np
 from ultralytics import YOLO
 from PIL import Image
@@ -18,7 +17,7 @@ st.title("📸 Dual YOLO Model Detection")
 mode = st.sidebar.selectbox("Choose Mode", ["Webcam Detection", "Image Upload"])
 
 # ======================
-# Webcam Mode
+# Webcam Mode (WebRTC Solution)
 # ======================
 
 class VideoTransformer(VideoTransformerBase):
@@ -48,14 +47,8 @@ class VideoTransformer(VideoTransformerBase):
 if mode == "Webcam Detection":
     st.subheader("🎥 Webcam Detection with Two Models")
 
-    # Start and Stop Buttons
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("▶️ Start Webcam"):
-            webrtc_streamer(key="example", video_transformer_factory=VideoTransformer)
-    with col2:
-        if st.button("⛔ Stop Webcam"):
-            st.session_state.running = False  # Streamlit-webrtc will handle stopping automatically
+    # Streamlit-webrtc: Start webcam stream
+    webrtc_streamer(key="example", video_transformer_factory=VideoTransformer)
 
 # ======================
 # Image Upload Mode
