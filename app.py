@@ -6,7 +6,7 @@ from PIL import Image
 import time
 
 # Load two models
-model1 = YOLO("yolov8n.pt")  # Replace with your actual watch detection model
+model1 = YOLO("model.pt")  # Replace with your actual watch detection model
 model2 = YOLO("yolov8n.pt")      # General model or another custom one
 
 # App title
